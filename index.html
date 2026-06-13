@@ -689,34 +689,29 @@ function previewPhoto(input) {
   const file = input.files[0];
   const reader = new FileReader();
   reader.onload = function(e) {
-    // Compresser l'image via canvas avant envoi
     const img = new Image();
     img.onload = function() {
       const canvas = document.createElement('canvas');
-      // Limiter à 800px max pour réduire la taille
-      const MAX = 800;
+      // Très petite taille pour tenir dans 1 GET : 120x120 max
+      const MAX = 120;
       let w = img.width, h = img.height;
-      if (w > MAX || h > MAX) {
-        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
-        else { w = Math.round(w * MAX / h); h = MAX; }
-      }
+      if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+      else { w = Math.round(w * MAX / h); h = MAX; }
       canvas.width = w;
       canvas.height = h;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, w, h);
-      // Qualité 0.7 = bonne qualité, taille réduite
-      const compressed = canvas.toDataURL('image/jpeg', 0.7);
+      // Qualité très basse pour réduire au maximum
+      const compressed = canvas.toDataURL('image/jpeg', 0.3);
       
-      // Afficher aperçu
-      document.getElementById('photo-img').src = compressed;
+      // Afficher aperçu (original pour la préview)
+      document.getElementById('photo-img').src = e.target.result;
       document.getElementById('photo-preview').style.display = 'block';
-      document.getElementById('photo-name').textContent = file.name + ' (compressée)';
       document.getElementById('photo-label').textContent = '✅ Photo sélectionnée';
-      // Stocker base64 compressé
       selectedPhoto = compressed.split(',')[1];
       
       const sizeKB = Math.round(selectedPhoto.length * 0.75 / 1024);
-      document.getElementById('photo-name').textContent = file.name + ' · ' + sizeKB + ' KB';
+      document.getElementById('photo-name').textContent = file.name + ' · miniature ' + sizeKB + ' KB';
     };
     img.src = e.target.result;
   };
@@ -761,28 +756,18 @@ async function sauvegarder() {
     }
   }
 
-  // 3. Envoyer la photo via GET en chunks (CORS safe)
+  // 3. Envoyer la photo (miniature compressée) en un seul GET
   if (selectedPhoto) {
     btn.textContent = 'Envoi photo...';
     try {
-      const CHUNK = 1500; // chars par chunk (URL max ~2000)
-      const total = Math.ceil(selectedPhoto.length / CHUNK);
-      // Envoyer chunk par chunk
-      for (let i = 0; i < total; i++) {
-        const chunk = selectedPhoto.substring(i * CHUNK, (i+1) * CHUNK);
-        showToast('📤 Photo ' + (i+1) + '/' + total + '...', 2000);
-        const r3 = await apiGet({
-          action: 'saisir_photo_chunk',
-          salarie: currentSalarie,
-          row: currentSaisieRow.row,
-          chunk: chunk,
-          idx: i,
-          total: total,
-        });
-        if (!r3 || !r3.ok) {
-          showToast('❌ Photo chunk ' + i + ' erreur: ' + (r3?.error||''), 5000);
-          break;
-        }
+      const r3 = await apiGet({
+        action: 'saisir_photo',
+        salarie: currentSalarie,
+        row: currentSaisieRow.row,
+        imageBase64: selectedPhoto,
+      });
+      if (!r3 || !r3.ok) {
+        showToast('⚠️ Photo : ' + (r3?.error || 'erreur'), 5000);
       }
     } catch(err) {
       showToast('❌ Photo : ' + err.message, 5000);
