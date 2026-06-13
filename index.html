@@ -310,7 +310,7 @@ td.pos { color: var(--green); font-weight: 600; }
 
 <script>
 // ── CONFIG ────────────────────────────────────────────────────
-let API_URL = 'https://script.google.com/macros/s/AKfycbw4vDHhbma4bWFavJlqnxnHiRHpFBg72iMyESdRp63PF94VY-6XzqMhVOA0zLEBd4Ny/exec';
+let API_URL = 'https://script.google.com/macros/s/AKfycbwUV6goVxTzeUGAJfZCFEcW5wIRJEfaSRqGVscrYI1FisdJV8Dt8KPhWL3Sgz-jInF6WQ/exec';
 const CACHE = {};
 let currentSalarie = 'ANATOLE';
 let currentRecapSal = 'ANATOLE';
@@ -857,7 +857,20 @@ async function loadRecap(sal) {
   if (!isAntonio) {
     html += `<td>TOTAL</td><td>${t.hSupMaj}</td><td>${t.jRtt}j</td><td>${t.jAbsent}j</td><td class="${t.net?.startsWith('-')?'neg':'pos'}">${t.net}</td><td>${t.conges}j</td>`;
   } else {
-    html += `<td>TOTAL</td><td>${t.jAbsent}j</td><td>${t.hAbsent}</td><td>${t.jWeTrav}j</td><td>${t.hWeTrav}</td><td>${t.conges}j</td>`;
+    // Calculer totaux depuis les lignes mois côté HTML
+    function hhmToMin(str) {
+      if (!str || str==='0:00' || str==='0:00:00') return 0;
+      const p = str.split(':'); return parseInt(p[0]||0)*60+parseInt(p[1]||0);
+    }
+    function minToHhm(min) {
+      return Math.floor(min/60)+':'+(min%60).toString().padStart(2,'0');
+    }
+    const totJAbs   = data.mois.reduce((s,m)=>s+(m.jAbsent||0),0);
+    const totHAbs   = minToHhm(data.mois.reduce((s,m)=>s+hhmToMin(m.hAbsent),0));
+    const totJWe    = data.mois.reduce((s,m)=>s+(m.jWeTrav||0),0);
+    const totHWe    = minToHhm(data.mois.reduce((s,m)=>s+hhmToMin(m.hWeTrav),0));
+    const totConges = data.mois.reduce((s,m)=>s+(m.conges||0),0);
+    html += `<td>TOTAL</td><td>${totJAbs}j</td><td>${totHAbs}</td><td>${totJWe}j</td><td>${totHWe}</td><td>${totConges}j</td>`;
   }
   html += '</tr></tbody></table></div>';
 
