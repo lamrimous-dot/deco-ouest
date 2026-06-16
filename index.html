@@ -1198,4 +1198,39 @@ async function saveConfig() {
   if (r && r.ok) {
     showToast('✅ Connexion OK !');
     setStatus('Connecté');
-    loadSol
+    loadSolde();
+  } else {
+    showToast('❌ Échec : vérifiez l\'URL et les droits de déploiement');
+  }
+}
+
+// ── REFRESH ───────────────────────────────────────────────────
+function refreshAll() {
+  const activePage = document.querySelector('.page.active').id;
+  if (activePage === 'page-solde')   loadSolde();
+  if (activePage === 'page-semaine') loadSemaine(currentSalarie);
+  if (activePage === 'page-recap')   loadRecap(currentRecapSal);
+  showToast('🔄 Actualisation...');
+}
+
+// ── UTILS ─────────────────────────────────────────────────────
+function setStatus(msg) {
+  document.getElementById('nav-status').textContent = msg;
+}
+
+function showToast(msg, duration=3000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+window.onload = () => {
+  // URL codée en dur — connexion automatique
+  setStatus('Connexion...');
+  loadSolde();
+};
+</script>
+</body>
+</html>
