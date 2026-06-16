@@ -861,7 +861,7 @@ function renderCalCell(j, month) {
 }
 
 // ── CONFIG ────────────────────────────────────────────────────
-let API_URL = 'https://script.google.com/macros/s/AKfycby0Ejt974PrxELUiBqeWz13sLdPH3e2CWNZq6eZwndy91QNvkHJ7QbD8VYRppBwMkYtwA/exec';
+let API_URL = 'https://script.google.com/macros/s/AKfycbz5RpfL8IK-4gRKEl7PeGWnW3nSKthtVK6aPYlvjnSRCf2opUxLdVXnNzbxmKPIBUV2GQ/exec';
 const CACHE = {};
 let currentSalarie = 'ANATOLE';
 let currentRecapSal = 'ANATOLE';
@@ -1570,28 +1570,10 @@ function showToast(msg, duration=3000) {
 }
 
 // ── INIT ──────────────────────────────────────────────────────
-window.onload = async () => {
+window.onload = () => {
+  // URL codée en dur — connexion automatique
   setStatus('Connexion...');
-  // Test rapide de connexion avant de charger
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-    const r = await fetch(API_URL + '?action=ping', { signal: controller.signal });
-    clearTimeout(timeout);
-    const data = await r.json();
-    if (data && data.ok) {
-      setStatus('Connecté');
-      loadSolde();
-    } else {
-      setStatus('Erreur script');
-      document.getElementById('solde-content').innerHTML =
-        '<div class="empty">❌ Le script Apps Script ne répond pas correctement.<br>Vérifiez le déploiement dans l\'onglet Config.</div>';
-    }
-  } catch(e) {
-    setStatus('Non connecté');
-    document.getElementById('solde-content').innerHTML =
-      '<div class="empty">❌ Impossible de joindre le script.<br>Vérifiez votre connexion internet ou l\'URL dans Config.</div>';
-  }
+  loadSolde();
 };
 </script>
 </body>
