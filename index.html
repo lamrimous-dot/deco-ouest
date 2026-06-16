@@ -747,14 +747,14 @@ async function loadSemaine(sal) {
 
   CACHE['semaine_' + sal] = data;
   try {
-    renderSemaine(data.semaine, sal);
+    renderSemaine(data.semaine);
   } catch(err) {
     el.innerHTML = `<div class="empty">❌ Erreur affichage : ${err.message}</div>`;
   }
 }
 
-function renderSemaine(jours, sal) {
-  sal = sal || currentSalarie;
+function renderSemaine(jours) {
+  const sal = currentSalarie;
   const el = document.getElementById('semaine-content');
 
   // Calculer totaux semaine depuis les valeurs affichées
@@ -1198,3 +1198,4 @@ async function saveConfig() {
   if (r && r.ok) {
     showToast('✅ Connexion OK !');
     setStatus('Connecté');
+    loadSol
