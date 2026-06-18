@@ -1282,7 +1282,14 @@ function renderSemaine(jours) {
         ${sal !== 'ANTONIO' ? `<div style="text-align:center;background:white;border-radius:8px;padding:8px">
           <div style="font-size:10px;color:var(--text2);margin-bottom:3px">Maj. 25%</div>
           <div style="font-size:17px;font-weight:700;color:${totalMajMin>0?'var(--green)':'var(--text2)'}">${minsToStr(totalMajMin)}</div>
-        </div>` : ''}
+        </div>
+        <div style="text-align:center;background:var(--blue);border-radius:8px;padding:8px;grid-column:1/-1">
+          <div style="font-size:10px;color:rgba(255,255,255,.8);margin-bottom:3px">Total (H. trav. + Maj.)</div>
+          <div style="font-size:20px;font-weight:700;color:white">${minsToStr(totalTravMin + totalMajMin)}</div>
+        </div>` : `<div style="text-align:center;background:var(--blue);border-radius:8px;padding:8px;grid-column:1/-1">
+          <div style="font-size:10px;color:rgba(255,255,255,.8);margin-bottom:3px">Total semaine</div>
+          <div style="font-size:20px;font-weight:700;color:white">${minsToStr(totalTravMin)}</div>
+        </div>`}
       </div>
     </div>`;
   }
