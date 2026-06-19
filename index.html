@@ -586,7 +586,7 @@ async function telechargerPdfCalendrier() {
         const op = inMonth ? '1' : '0.4';
         let inner = `<b style="font-size:12px">${dt.getDate()}</b>`;
         const isTrav = j && (j.type === 'Jour Travaillé' || j.type === 'journee solidarité travaillé');
-        const isAbsRttConge = j && (j.type === 'CONGE' || j.type === 'RTT' || j.type === 'ABSENT' || j.type === 'ARRET TRAVAIL MALADIE');
+        const isFerie = j && j.type === 'JOUR FERIE non travaillé';
         if (isTrav && j.travaille && j.travaille !== '0:00' && j.travaille !== '0:00:00') {
           const t = j.travaille.replace(':00','');
           inner += `<br><span style="color:#1565C0;font-size:10px">${t}</span>`;
@@ -595,7 +595,7 @@ async function telechargerPdfCalendrier() {
           const lbl = typeLabel(j.type);
           if (lbl) inner += `<br><span style="color:#546E7A;font-size:9px">${lbl}</span>`;
         }
-        if (inMonth && isAbsRttConge) baseAjusteeMin -= baseJourMin;
+        if (inMonth && isFerie) baseAjusteeMin -= baseJourMin;
         calHtml += `<td style="${cellS}background:${bg};opacity:${op}">${inner}</td>`;
       }
       // Total = base ajustée + Maj. 25% (sauf Antonio) — identique à l'onglet Semaine
@@ -1135,9 +1135,9 @@ function renderCalendrier(weeksData, month) {
         const j = week.jours[i];
         const inMonth = parseInt(j.date.split('/')[1])-1 === month;
         const isTrav = j.type === 'Jour Travaillé' || j.type === 'journee solidarité travaillé';
-        const isAbsRttConge = j.type === 'CONGE' || j.type === 'RTT' || j.type === 'ABSENT' || j.type === 'ARRET TRAVAIL MALADIE';
+        const isFerie = j.type === 'JOUR FERIE non travaillé';
         if (inMonth && isTrav && j.travaille) { weekMin += hhmToMin(j.travaille); nbJoursTrav++; }
-        if (inMonth && isAbsRttConge) { baseAjusteeMin -= baseJourMin; }
+        if (inMonth && isFerie) { baseAjusteeMin -= baseJourMin; }
       }
     }
     // Sam/Dim
@@ -1471,7 +1471,7 @@ function renderSemaine(jours) {
   for (const j of jours) {
     const type = j.type || '';
     const isTravaille = type === 'Jour Travaillé' || type === 'journee solidarité travaillé';
-    const isAbsRttConge = type === 'CONGE' || type === 'RTT' || type === 'ABSENT' || type === 'ARRET TRAVAIL MALADIE';
+    const isFerie = type === 'JOUR FERIE non travaillé';
     if (isTravaille && j.travaille) {
       totalTravMin += parseDisplayDuration(j.travaille);
       joursComptes++;
@@ -1479,7 +1479,7 @@ function renderSemaine(jours) {
     if (isTravaille && j.ecart) {
       totalEcartMin += parseDisplayDuration(j.ecart);
     }
-    if (isAbsRttConge) {
+    if (isFerie) {
       baseAjustee -= BASE_JOUR * 60;
     }
   }
