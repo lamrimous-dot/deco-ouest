@@ -574,6 +574,8 @@ async function telechargerPdfCalendrier() {
     for (const mon of weeks) {
       let weekMin = 0;
       let nbJoursTrav = 0;
+      let baseAjusteeMin = (currentCalSalarie === 'ANTONIO' ? 39 : 35) * 60;
+      const baseJourMin = (currentCalSalarie === 'ANTONIO' ? 8 : 7) * 60;
       calHtml += '<tr style="height:55px">';
       for (let d = 0; d < 7; d++) {
         const dt = new Date(mon); dt.setDate(mon.getDate()+d);
@@ -584,6 +586,7 @@ async function telechargerPdfCalendrier() {
         const op = inMonth ? '1' : '0.4';
         let inner = `<b style="font-size:12px">${dt.getDate()}</b>`;
         const isTrav = j && (j.type === 'Jour Travaillé' || j.type === 'journee solidarité travaillé');
+        const isAbsRttConge = j && (j.type === 'CONGE' || j.type === 'RTT' || j.type === 'ABSENT' || j.type === 'ARRET TRAVAIL MALADIE');
         if (isTrav && j.travaille && j.travaille !== '0:00' && j.travaille !== '0:00:00') {
           const t = j.travaille.replace(':00','');
           inner += `<br><span style="color:#1565C0;font-size:10px">${t}</span>`;
@@ -592,15 +595,15 @@ async function telechargerPdfCalendrier() {
           const lbl = typeLabel(j.type);
           if (lbl) inner += `<br><span style="color:#546E7A;font-size:9px">${lbl}</span>`;
         }
+        if (inMonth && isAbsRttConge) baseAjusteeMin -= baseJourMin;
         calHtml += `<td style="${cellS}background:${bg};opacity:${op}">${inner}</td>`;
       }
-      // Total = 35h00 FIXE + Maj. 25% (sauf Antonio) — identique à l'onglet Semaine
+      // Total = base ajustée + Maj. 25% (sauf Antonio) — identique à l'onglet Semaine
       let weekTotalMin = weekMin;
       if (currentCalSalarie !== 'ANTONIO') {
-        const baseMin = 35 * 60;
-        const excessMin = weekMin - baseMin;
+        const excessMin = weekMin - baseAjusteeMin;
         const majMin = excessMin > 0 ? Math.round(excessMin * 1.25) : 0;
-        weekTotalMin = baseMin + majMin;
+        weekTotalMin = baseAjusteeMin + majMin;
       }
       totalMoisMin += weekTotalMin;
       calHtml += `<td style="${totalS}">${weekTotalMin>0?minToHhm(weekTotalMin):'—'}</td></tr>`;
@@ -1121,6 +1124,8 @@ function renderCalendrier(weeksData, month) {
   for (const week of weeksData) {
     let weekMin = 0;
     let nbJoursTrav = 0;
+    let baseAjusteeMin = (currentCalSalarie === 'ANTONIO' ? 39 : 35) * 60;
+    const baseJourMin = (currentCalSalarie === 'ANTONIO' ? 8 : 7) * 60;
     html += '<div style="display:flex;gap:6px;align-items:stretch;margin-bottom:4px">';
     html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;flex:1">';
     // Jours lun-ven
@@ -1130,7 +1135,9 @@ function renderCalendrier(weeksData, month) {
         const j = week.jours[i];
         const inMonth = parseInt(j.date.split('/')[1])-1 === month;
         const isTrav = j.type === 'Jour Travaillé' || j.type === 'journee solidarité travaillé';
+        const isAbsRttConge = j.type === 'CONGE' || j.type === 'RTT' || j.type === 'ABSENT' || j.type === 'ARRET TRAVAIL MALADIE';
         if (inMonth && isTrav && j.travaille) { weekMin += hhmToMin(j.travaille); nbJoursTrav++; }
+        if (inMonth && isAbsRttConge) { baseAjusteeMin -= baseJourMin; }
       }
     }
     // Sam/Dim
@@ -1144,13 +1151,12 @@ function renderCalendrier(weeksData, month) {
       </div>`;
     }
     html += '</div>';
-    // Total = 35h00 FIXE + Maj. 25% (sauf Antonio) — identique à l'onglet Semaine
+    // Total = base ajustée + Maj. 25% (sauf Antonio) — identique à l'onglet Semaine
     let weekTotalMin = weekMin;
     if (currentCalSalarie !== 'ANTONIO') {
-      const baseMin = 35 * 60;
-      const excessMin = weekMin - baseMin;
+      const excessMin = weekMin - baseAjusteeMin;
       const majMin = excessMin > 0 ? Math.round(excessMin * 1.25) : 0;
-      weekTotalMin = baseMin + majMin;
+      weekTotalMin = baseAjusteeMin + majMin;
     }
     // Colonne total semaine SÉPARÉE (H.trav + Maj.)
     totalMoisMin += weekTotalMin;
@@ -1458,11 +1464,14 @@ function renderSemaine(jours) {
   let totalEcartMin = 0;
   let totalMajMin = 0;
   const BASE_SEMAINE = (sal === 'ANTONIO') ? 39 : 35; // h
+  const BASE_JOUR = (sal === 'ANTONIO') ? 8 : 7; // h par jour absent/RTT/congé
   let joursComptes = 0;
+  let baseAjustee = BASE_SEMAINE * 60; // en minutes
 
   for (const j of jours) {
     const type = j.type || '';
     const isTravaille = type === 'Jour Travaillé' || type === 'journee solidarité travaillé';
+    const isAbsRttConge = type === 'CONGE' || type === 'RTT' || type === 'ABSENT' || type === 'ARRET TRAVAIL MALADIE';
     if (isTravaille && j.travaille) {
       totalTravMin += parseDisplayDuration(j.travaille);
       joursComptes++;
@@ -1470,10 +1479,12 @@ function renderSemaine(jours) {
     if (isTravaille && j.ecart) {
       totalEcartMin += parseDisplayDuration(j.ecart);
     }
+    if (isAbsRttConge) {
+      baseAjustee -= BASE_JOUR * 60;
+    }
   }
-  // Maj 25% = max(total - 35h, 0) * 1.25 — uniquement pour Anatole et Artiom
-  const basMin = BASE_SEMAINE * 60;
-  const excessMin = totalTravMin - basMin;
+  // Maj 25% = max(total - base ajustée, 0) * 1.25 — uniquement pour Anatole et Artiom
+  const excessMin = totalTravMin - baseAjustee;
   totalMajMin = (sal === 'ANTONIO') ? 0 : (excessMin > 0 ? Math.round(excessMin * 1.25) : 0);
 
   let html = '<div class="card"><div class="card-title">Cette semaine — cliquez pour saisir</div>';
@@ -1514,7 +1525,7 @@ function renderSemaine(jours) {
         </div>
         <div style="text-align:center;background:var(--blue);border-radius:8px;padding:8px;grid-column:1/-1">
           <div style="font-size:10px;color:rgba(255,255,255,.8);margin-bottom:3px">Total (H. trav. + Maj.)</div>
-          <div style="font-size:20px;font-weight:700;color:white">${minsToStr(35*60 + totalMajMin)}</div>
+          <div style="font-size:20px;font-weight:700;color:white">${minsToStr(baseAjustee + totalMajMin)}</div>
         </div>` : `<div style="text-align:center;background:var(--blue);border-radius:8px;padding:8px;grid-column:1/-1">
           <div style="font-size:10px;color:rgba(255,255,255,.8);margin-bottom:3px">Total semaine</div>
           <div style="font-size:20px;font-weight:700;color:white">${minsToStr(totalTravMin)}</div>
