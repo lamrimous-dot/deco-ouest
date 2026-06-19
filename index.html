@@ -594,10 +594,10 @@ async function telechargerPdfCalendrier() {
         }
         calHtml += `<td style="${cellS}background:${bg};opacity:${op}">${inner}</td>`;
       }
-      // Ajouter majoration 25% (sauf Antonio)
+      // Ajouter majoration 25% (sauf Antonio) — base 35h FIXE
       let weekTotalMin = weekMin;
-      if (currentCalSalarie !== 'ANTONIO' && nbJoursTrav > 0) {
-        const baseMin = (35*60/5) * nbJoursTrav;
+      if (currentCalSalarie !== 'ANTONIO') {
+        const baseMin = 35 * 60;
         const excessMin = weekMin - baseMin;
         const majMin = excessMin > 0 ? Math.round(excessMin * 1.25) : 0;
         weekTotalMin = weekMin + majMin;
@@ -1144,10 +1144,10 @@ function renderCalendrier(weeksData, month) {
       </div>`;
     }
     html += '</div>';
-    // Ajouter majoration 25% (sauf Antonio) — base 35h/5j proportionnelle aux jours travaillés du mois
+    // Ajouter majoration 25% (sauf Antonio) — base 35h FIXE (identique à l'onglet Semaine)
     let weekTotalMin = weekMin;
-    if (currentCalSalarie !== 'ANTONIO' && nbJoursTrav > 0) {
-      const baseMin = (35*60/5) * nbJoursTrav;
+    if (currentCalSalarie !== 'ANTONIO') {
+      const baseMin = 35 * 60;
       const excessMin = weekMin - baseMin;
       const majMin = excessMin > 0 ? Math.round(excessMin * 1.25) : 0;
       weekTotalMin = weekMin + majMin;
