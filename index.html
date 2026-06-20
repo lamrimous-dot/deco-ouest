@@ -586,7 +586,7 @@ async function telechargerPdfCalendrier() {
         const op = inMonth ? '1' : '0.4';
         let inner = `<b style="font-size:12px">${dt.getDate()}</b>`;
         const isTrav = j && (j.type === 'Jour Travaillé' || j.type === 'journee solidarité travaillé');
-        const isAbsRttConge = j && (j.type === 'CONGE' || j.type === 'RTT' || j.type === 'ABSENT');
+        const isAbsRttConge = j && (j.type === 'CONGE' || j.type === 'RTT' || j.type === 'ABSENT' || j.type === 'ARRET TRAVAIL MALADIE');
         if (isTrav && j.travaille && j.travaille !== '0:00' && j.travaille !== '0:00:00') {
           const t = j.travaille.replace(':00','');
           inner += `<br><span style="color:#1565C0;font-size:10px">${t}</span>`;
@@ -615,7 +615,7 @@ async function telechargerPdfCalendrier() {
       if (currentCalSalarie !== 'ANTONIO') {
         const excessMin = weekMin - baseAjusteeMin;
         const majMin = excessMin > 0 ? Math.round(excessMin * 1.25) : 0;
-        weekTotalMin = baseAjusteeMin + majMin;
+        weekTotalMin = weekMin + majMin;
       }
       if (semaineEstFuture && !aDesDonnees) {
         calHtml += `<td style="${totalS}">—</td></tr>`;
@@ -794,7 +794,7 @@ function renderMensuel(jours, sal, moisNom) {
     const isRtt = type === 'RTT';
     const isAbsent = type === 'ABSENT' || type === 'ARRET TRAVAIL MALADIE';
     const isFerie = type === 'JOUR FERIE non travaillé';
-    const isAbsRttConge = type === 'CONGE' || type === 'RTT' || type === 'ABSENT';
+    const isAbsRttConge = type === 'CONGE' || type === 'RTT' || type === 'ABSENT' || type === 'ARRET TRAVAIL MALADIE';
 
     let rowClass = '';
     if (isWeekend) rowClass = 'weekend';
@@ -1152,7 +1152,7 @@ function renderCalendrier(weeksData, month) {
         const j = week.jours[i];
         const inMonth = parseInt(j.date.split('/')[1])-1 === month;
         const isTrav = j.type === 'Jour Travaillé' || j.type === 'journee solidarité travaillé';
-        const isAbsRttConge = j.type === 'CONGE' || j.type === 'RTT' || j.type === 'ABSENT';
+        const isAbsRttConge = j.type === 'CONGE' || j.type === 'RTT' || j.type === 'ABSENT' || j.type === 'ARRET TRAVAIL MALADIE';
         if (inMonth && isTrav && j.travaille) { weekMin += hhmToMin(j.travaille); nbJoursTrav++; }
         if (inMonth && isAbsRttConge) { baseAjusteeMin -= baseJourMin; }
       }
@@ -1183,7 +1183,7 @@ function renderCalendrier(weeksData, month) {
     if (currentCalSalarie !== 'ANTONIO') {
       const excessMin = weekMin - baseAjusteeMin;
       const majMin = excessMin > 0 ? Math.round(excessMin * 1.25) : 0;
-      weekTotalMin = baseAjusteeMin + majMin;
+      weekTotalMin = weekMin + majMin;
     }
     // Colonne total semaine SÉPARÉE (H.trav + Maj.) — ignorer si semaine future sans données
     if (semaineEstFuture && !aDesDonnees) {
@@ -1502,7 +1502,7 @@ function renderSemaine(jours) {
   for (const j of jours) {
     const type = j.type || '';
     const isTravaille = type === 'Jour Travaillé' || type === 'journee solidarité travaillé';
-    const isAbsRttConge = type === 'CONGE' || type === 'RTT' || type === 'ABSENT';
+    const isAbsRttConge = type === 'CONGE' || type === 'RTT' || type === 'ABSENT' || type === 'ARRET TRAVAIL MALADIE';
     if (isTravaille && j.travaille) {
       totalTravMin += parseDisplayDuration(j.travaille);
       joursComptes++;
@@ -1556,7 +1556,7 @@ function renderSemaine(jours) {
         </div>
         <div style="text-align:center;background:var(--blue);border-radius:8px;padding:8px;grid-column:1/-1">
           <div style="font-size:10px;color:rgba(255,255,255,.8);margin-bottom:3px">Total (H. trav. + Maj.)</div>
-          <div style="font-size:20px;font-weight:700;color:white">${minsToStr(baseAjustee + totalMajMin)}</div>
+          <div style="font-size:20px;font-weight:700;color:white">${minsToStr(totalTravMin + totalMajMin)}</div>
         </div>` : `<div style="text-align:center;background:var(--blue);border-radius:8px;padding:8px;grid-column:1/-1">
           <div style="font-size:10px;color:rgba(255,255,255,.8);margin-bottom:3px">Total semaine</div>
           <div style="font-size:20px;font-weight:700;color:white">${minsToStr(totalTravMin)}</div>
