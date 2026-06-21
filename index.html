@@ -1160,7 +1160,7 @@ function toggleVueEquipe() {
 
 async function loadVueEquipe() {
   const el = document.getElementById('calendrier-content');
-  el.innerHTML = '<div class="loader"><div class="spinner"></div><div class="loader-text">Chargement de l\\'équipe...</div></div>';
+  el.innerHTML = '<div class="loader"><div class="spinner"></div><div class="loader-text">Chargement de l\'équipe...</div></div>';
 
   const salaries = ['ANATOLE', 'ARTIOM', 'ANTONIO'];
   const results = {};
@@ -1204,7 +1204,7 @@ async function loadVueEquipe() {
   }
 
   if (totalEvenements === 0) {
-    html = '<div class="empty">✅ Aucun congé, RTT ou absence ce mois-ci pour l\\'équipe</div>';
+    html = '<div class="empty">✅ Aucun congé, RTT ou absence ce mois-ci pour l\'équipe</div>';
   }
 
   el.innerHTML = html;
