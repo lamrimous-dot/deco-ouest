@@ -1252,7 +1252,7 @@ function renderCalCell(j, month) {
 }
 
 // ── CONFIG ────────────────────────────────────────────────────
-let API_URL = 'https://script.google.com/macros/s/AKfycbwFlphIUghK-xqORiwZtFugkkybTm0r5jIjHmIfMMAps445x1XbZXvIr1xMdYhLpxKU7w/exec';
+let API_URL = 'https://script.google.com/macros/s/AKfycbwhRx93DaUMLS7h5ORPtLvGEbHqhA-A0g006lUdSNE6t9BU__WW5isYVoAmO6fTcAiZ1A/exec';
 const CACHE = {};
 let currentSalarie = 'ANATOLE';
 let currentRecapSal = 'ANATOLE';
@@ -1562,7 +1562,6 @@ function renderSemaine(jours) {
       ${isTravaille && j.travaille && j.travaille !== '0:00' ? `<div class="jour-heures">${cleanTime(j.travaille)}</div>` : ''}
       ${isTravaille && j.ecart && j.ecart !== '0:00' ? `<div class="jour-ecart ${j.ecart.startsWith('-') ? 'neg' : 'pos'}">${cleanTime(j.ecart)}</div>` : ''}
       ${j.remarque ? `<div style="font-size:9px;color:var(--amber);margin-left:4px">💬</div>` : ''}
-      ${j.photoFileId ? `<img src="https://drive.google.com/thumbnail?id=${j.photoFileId}&sz=w100" style="width:32px;height:32px;border-radius:6px;object-fit:cover;margin-left:6px;cursor:pointer;border:1px solid #ccc" onclick="event.stopPropagation(); ouvrirPhotoZoom('${j.photoFileId}')">` : ''}
     </div>`;
   }
 
@@ -1601,42 +1600,6 @@ function renderSemaine(jours) {
 }
 
 // Nettoyer format heure : "8:00:00" → "8:00", "-0:22:00" → "-0:22"
-// ── ZOOM PHOTO (modal plein écran) ──────────────────────────────
-function ouvrirPhotoZoom(fileId) {
-  const imgUrl = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w1600';
-  const downloadUrl = 'https://drive.google.com/uc?export=download&id=' + fileId;
-
-  let modal = document.getElementById('photo-zoom-modal');
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.id = 'photo-zoom-modal';
-    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;' +
-      'background:rgba(0,0,0,.92);display:flex;flex-direction:column;align-items:center;' +
-      'justify-content:center;gap:16px;padding:20px;box-sizing:border-box;';
-    modal.onclick = (e) => { if (e.target === modal) fermerPhotoZoom(); };
-    document.body.appendChild(modal);
-  }
-
-  modal.innerHTML = `
-    <div style="position:absolute;top:16px;right:16px;display:flex;gap:10px">
-      <a href="${downloadUrl}" download style="background:white;color:#1565C0;border:none;
-         border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;
-         font-size:20px;text-decoration:none;cursor:pointer">⬇️</a>
-      <button onclick="fermerPhotoZoom()" style="background:white;color:#C62828;border:none;
-         border-radius:50%;width:44px;height:44px;font-size:22px;cursor:pointer">✕</button>
-    </div>
-    <img src="${imgUrl}" style="max-width:100%;max-height:85vh;border-radius:8px;
-         box-shadow:0 8px 40px rgba(0,0,0,.5);object-fit:contain">
-    <div style="color:rgba(255,255,255,.6);font-size:12px">Pincer pour zoomer • Toucher en dehors pour fermer</div>
-  `;
-  modal.style.display = 'flex';
-}
-
-function fermerPhotoZoom() {
-  const modal = document.getElementById('photo-zoom-modal');
-  if (modal) modal.style.display = 'none';
-}
-
 function cleanTime(str) {
   if (!str) return str;
   // Supprimer les secondes si présentes (ex: "8:00:00" → "8:00")
