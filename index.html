@@ -360,6 +360,10 @@ window.addEventListener('DOMContentLoaded', () => {
           <label class="form-label">🕐 Heure de fin de journée</label>
           <input class="form-input" type="time" id="f-fin" value="16:00" style="font-size:22px;padding:14px;text-align:center;font-weight:700">
         </div>
+        <button type="button" onclick="definirModele()" id="btn-modele" style="width:100%;padding:10px;background:var(--blue-l);
+                color:var(--blue);border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-top:4px">
+          💾 Utiliser comme heure habituelle
+        </button>
       </div>
 
       <!-- Remarque / Commentaire -->
@@ -1569,6 +1573,10 @@ function renderSemaine(jours) {
   const totalFinalMin = aArretMaladie ? (totalTravMin + totalMajMin) : (baseAjustee + totalMajMin);
 
   let html = '<div class="card"><div class="card-title">Cette semaine — cliquez pour saisir</div>';
+  html += `<button onclick="appliquerModeleSemaine()" style="width:100%;padding:10px;background:var(--green-l);
+           color:var(--green);border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:10px">
+    ⚡ Appliquer l'heure habituelle aux jours travaillés
+  </button>`;
   for (const j of jours) {
     const type = j.type || '';
     const typeClass = typeToClass(type);
@@ -1694,6 +1702,61 @@ function openSaisie(jour) {
 
   document.getElementById('semaine-content').style.display = 'none';
   document.getElementById('saisie-page').style.display = 'block';
+}
+
+// ── MODÈLE DE SEMAINE (heure habituelle par salarié) ────────────
+function definirModele() {
+  const fin = document.getElementById('f-fin').value;
+  if (!fin) return;
+  localStorage.setItem('modele_fin_' + currentSalarie, fin);
+  showToast('💾 Heure habituelle enregistrée : ' + fin, 2000);
+}
+
+function getModeleFin(sal) {
+  return localStorage.getItem('modele_fin_' + sal) || null;
+}
+
+async function appliquerModeleSemaine() {
+  const modeleFin = getModeleFin(currentSalarie);
+  if (!modeleFin) {
+    showToast('⚠️ Aucune heure habituelle définie pour ' + currentSalarie, 3000);
+    return;
+  }
+
+  const data = CACHE['semaine_' + currentSalarie];
+  if (!data || !data.semaine) {
+    showToast('❌ Données semaine non chargées', 3000);
+    return;
+  }
+
+  const joursTravailles = data.semaine.filter(j =>
+    (j.type === 'Jour Travaillé' || j.type === 'journee solidarité travaillé') &&
+    (!j.fin || j.fin === '00:00' || j.fin === '')
+  );
+
+  if (joursTravailles.length === 0) {
+    showToast('✅ Tous les jours travaillés ont déjà une heure de fin', 3000);
+    return;
+  }
+
+  if (!confirm(`Appliquer ${modeleFin} comme heure de fin pour ${joursTravailles.length} jour(s) travaillé(s) sans heure saisie ?`)) {
+    return;
+  }
+
+  showToast('⏳ Application en cours...', 2000);
+  let nbOk = 0;
+  for (const j of joursTravailles) {
+    const r = await apiGet({
+      action: 'saisir_fin',
+      salarie: currentSalarie,
+      row: j.row,
+      fin: modeleFin,
+    });
+    if (r && r.ok) nbOk++;
+  }
+
+  showToast(`✅ ${nbOk}/${joursTravailles.length} jour(s) mis à jour`, 3000);
+  loadSemaine(currentSalarie);
 }
 
 function hideSaisie() {
