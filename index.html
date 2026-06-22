@@ -929,29 +929,14 @@ async function telechargerPdfMensuel() {
     const todayMonday = new Date(today);
     todayMonday.setDate(today.getDate() - ((today.getDay()+6)%7));
 
-    const firstDay = new Date(annee, moisIdx, 1);
-    const lastDay  = new Date(annee, moisIdx+1, 0);
-    const firstMonday = new Date(firstDay);
-    firstMonday.setDate(firstDay.getDate() - ((firstDay.getDay()+6)%7));
-
-    const mondays = [];
-    let cursor = new Date(firstMonday);
-    while (cursor <= lastDay) {
-      mondays.push(new Date(cursor));
-      cursor.setDate(cursor.getDate()+7);
-    }
-
-    const allJours = [];
-    for (const m of mondays) {
-      const diffDays = Math.round((m - todayMonday) / (1000*60*60*24));
-      const offset = Math.round(diffDays/7);
-      const data = await apiGet({action:'semaine', salarie: currentMensSalarie, offset: offset});
-      if (data && data.semaine) {
-        for (const j of data.semaine) {
-          const [dd, mm] = j.date.split('/').map(Number);
-          if (mm - 1 === moisIdx) allJours.push(j);
-        }
-      }
+    // Utiliser le cache si disponible, sinon un seul appel mois
+    const cacheKey = 'mensuel_' + currentMensSalarie + '_' + currentMensMonthOffset;
+    let allJours = [];
+    if (CACHE[cacheKey]) {
+      allJours = CACHE[cacheKey].mois;
+    } else {
+      const data = await apiGet({ action: 'mois', salarie: currentMensSalarie, offset: currentMensMonthOffset });
+      if (data && data.ok) allJours = data.mois;
     }
 
     // Construire HTML pour le PDF
