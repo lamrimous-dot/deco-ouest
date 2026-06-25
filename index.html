@@ -239,11 +239,17 @@ td.pos { color: var(--green); font-weight: 600; }
 </div>
 
 <script>
-function checkLogin() {
+async function checkLogin() {
   const input = document.getElementById('login-input');
   const error = document.getElementById('login-error');
-  // Hash simple du mot de passe (pas en clair)
-  if (input.value === 'ecoouest2026') {
+  // Vérification par hash SHA-256 (mot de passe jamais en clair)
+  const encoder = new TextEncoder();
+  const data = encoder.encode(input.value);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2,'0')).join('');
+  const MDP_HASH = '004e16ce11e3ddd5d0f17facca6df9982066fcbd5e2f3a09ad913b2cb0c879c7';
+  if (hashHex === MDP_HASH) {
     document.getElementById('login-screen').style.display = 'none';
     sessionStorage.setItem('deo_auth', '1');
   } else {
@@ -298,6 +304,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
 <!-- PAGE SOLDE -->
 <div id="page-solde" class="page active">
+  <div style="margin-bottom:10px">
+    <button class="btn-save" onclick="telechargerPdfSolde()" id="btn-pdf-solde">
+      📄 Télécharger le rapport Solde en PDF
+    </button>
+  </div>
   <div id="solde-content">
     <div class="loader"><div class="spinner"></div><div class="loader-text">Chargement...</div></div>
   </div>
@@ -748,13 +759,6 @@ async function loadMensuel() {
     return;
   }
 
-  // Cache : ne recharge pas si même salarié et même mois
-  const cacheKey = 'mensuel_' + currentMensSalarie + '_' + currentMensMonthOffset;
-  if (CACHE[cacheKey]) {
-    renderMensuelFromCache(CACHE[cacheKey]);
-    return;
-  }
-
   el.innerHTML = '<div class="loader"><div class="spinner"></div><div class="loader-text">Chargement du mois...</div></div>';
 
   // UNE SEULE requête pour tout le mois
@@ -778,23 +782,10 @@ async function loadMensuel() {
     return;
   }
 
-  // Mettre en cache
-  CACHE[cacheKey] = { mois: data.mois, sal: currentMensSalarie, moisNom };
-
   try {
     renderMensuel(data.mois, currentMensSalarie, moisNom);
   } catch(err) {
     el.innerHTML = '<div class="empty">❌ ' + err.message + '</div>';
-  }
-}
-
-function renderMensuelFromCache(cached) {
-  document.getElementById('mens-month-label').textContent =
-    cached.moisNom.charAt(0).toUpperCase() + cached.moisNom.slice(1);
-  try {
-    renderMensuel(cached.mois, cached.sal, cached.moisNom);
-  } catch(err) {
-    document.getElementById('mensuel-content').innerHTML = '<div class="empty">❌ ' + err.message + '</div>';
   }
 }
 
@@ -1096,13 +1087,6 @@ async function loadCalendrier() {
   document.getElementById('cal-month-label').textContent =
     traduireMois(target.toLocaleDateString('en-US', {month:'long', year:'numeric'}));
 
-  // Cache : ne recharge pas si même salarié et même mois
-  const cacheKey = 'cal_' + currentCalSalarie + '_' + currentCalMonthOffset;
-  if (CACHE[cacheKey]) {
-    renderCalendrier(CACHE[cacheKey].weeksData, month);
-    return;
-  }
-
   el.innerHTML = '<div class="loader"><div class="spinner"></div><div class="loader-text">Chargement du calendrier...</div></div>';
 
   const firstDay = new Date(year, month, 1);
@@ -1135,8 +1119,6 @@ async function loadCalendrier() {
   }
 
   if (myToken !== calLoadToken) return; // une navigation plus récente a eu lieu
-  // Mettre en cache
-  CACHE[cacheKey] = { weeksData, month };
   renderCalendrier(weeksData, month);
 }
 
@@ -1399,6 +1381,94 @@ async function apiPost(body) {
 }
 
 // ── SOLDE GLOBAL ──────────────────────────────────────────────
+// ── PDF SOLDE GLOBAL ───────────────────────────────────────────
+async function telechargerPdfSolde() {
+  const btn = document.getElementById('btn-pdf-solde');
+  btn.disabled = true;
+  btn.textContent = '⏳ Génération...';
+
+  try {
+    const data = CACHE.solde || await apiGet({ action: 'solde' });
+    if (!data || !data.ok) {
+      showToast('❌ Impossible de récupérer les données', 4000);
+      return;
+    }
+
+    const date = new Date().toLocaleDateString('fr-FR');
+    let salRows = '';
+
+    for (const s of data.salaries) {
+      const couleur = s.positif ? '#2E7D32' : '#C62828';
+      const solData = s.solidarite || { found: false };
+      const solLine = solData.found
+        ? `<tr><td colspan="2" style="font-size:10px;color:#1565C0">🤝 Journée de solidarité effectuée le ${solData.date}</td></tr>`
+        : `<tr><td colspan="2" style="font-size:10px;color:#E65100">⚠️ Journée de solidarité non effectuée</td></tr>`;
+
+      salRows += `
+        <div style="background:${s.positif?'#E8F5E9':'#FFEBEE'};border-left:4px solid ${couleur};
+                    border-radius:8px;padding:14px;margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="font-size:16px;font-weight:700;color:#263238">${s.nom}</span>
+            <span style="background:${couleur};color:white;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600">${s.statut}</span>
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:11px">
+            <tr>
+              <td style="padding:4px 0;color:#607D8B">Net 2026</td>
+              <td style="text-align:right;font-weight:600">${s.net2026}</td>
+              <td style="padding:4px 8px;color:#607D8B">Report 2025</td>
+              <td style="text-align:right;font-weight:600">${s.report}</td>
+            </tr>
+            <tr>
+              <td style="padding:4px 0;color:#607D8B">Solde final</td>
+              <td style="text-align:right;font-weight:700;color:${couleur};font-size:14px">${s.solde}</td>
+              <td style="padding:4px 8px;color:#607D8B">Mois en cours</td>
+              <td style="text-align:right;font-weight:600">${s.mois}</td>
+            </tr>
+            ${solLine}
+          </table>
+        </div>`;
+    }
+
+    const pdfHtml = `<html><head><meta charset="utf-8"><style>
+      body{font-family:Arial,sans-serif;color:#263238;padding:20px;margin:0}
+      h1{color:#1565C0;font-size:20px;margin-bottom:4px}
+      .sub{color:#607D8B;font-size:12px;margin-bottom:20px}
+    </style></head><body>
+      <h1>🏗️ D ECO OUEST — Solde Global</h1>
+      <div class="sub">Généré le ${date}</div>
+      ${salRows}
+    </body></html>`;
+
+    const encoded = encodeURIComponent(pdfHtml);
+    const CHUNK = 800;
+    const total = Math.ceil(encoded.length / CHUNK);
+    let finalR = null;
+
+    for (let i = 0; i < total; i++) {
+      const chunk = encoded.substring(i * CHUNK, (i+1) * CHUNK);
+      btn.textContent = '⏳ ' + Math.round((i+1)/total*100) + '%...';
+      const r = await apiGet({ action: 'pdf_mensuel_chunk', salarie: 'ANATOLE', chunk, idx: i, total });
+      if (!r || !r.ok) { showToast('❌ Erreur PDF', 4000); return; }
+      if (i === total - 1) finalR = r;
+    }
+
+    if (finalR && finalR.base64) {
+      const link = document.createElement('a');
+      link.href = 'data:application/pdf;base64,' + finalR.base64;
+      link.download = 'Solde_Global_' + date.replace(/\//g,'-') + '.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('✅ PDF téléchargé !', 2000);
+    }
+  } catch(err) {
+    showToast('❌ ' + err.message, 4000);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📄 Télécharger le rapport Solde en PDF';
+  }
+}
+
 async function loadSolde() {
   const el = document.getElementById('solde-content');
   if (!API_URL) {
