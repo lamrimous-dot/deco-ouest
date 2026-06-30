@@ -803,7 +803,7 @@ function renderMensuel(jours, sal, moisNom) {
   }
 
   let totalTravMin = 0, totalEcartMin = 0, totalMajMin = 0;
-  let nbTrav = 0, nbAbs = 0, nbRtt = 0, nbConge = 0;
+  let nbTrav = 0, nbAbs = 0, nbRtt = 0, nbConge = 0, nbMaladie = 0;
 
   let rows = '';
   for (const j of jours) {
@@ -812,7 +812,8 @@ function renderMensuel(jours, sal, moisNom) {
     const isWeekend = type === 'week end';
     const isConge = type === 'CONGE';
     const isRtt = type === 'RTT';
-    const isAbsent = type === 'ABSENT' || type === 'ARRET TRAVAIL MALADIE';
+    const isMaladie = type === 'ARRET TRAVAIL MALADIE';
+    const isAbsent = type === 'ABSENT' || isMaladie;
     const isFerie = type === 'JOUR FERIE non travaillé';
     const isAbsRttConge = type === 'CONGE' || type === 'RTT' || type === 'ABSENT' || type === 'ARRET TRAVAIL MALADIE';
 
@@ -829,7 +830,8 @@ function renderMensuel(jours, sal, moisNom) {
       if (j.travaille) totalTravMin += parseDisplayDuration(j.travaille);
       if (j.ecart) totalEcartMin += parseDisplayDuration(j.ecart);
     }
-    if (isAbsent) nbAbs++;
+    if (type === 'ABSENT') nbAbs++;
+    if (isMaladie) nbMaladie++;
     if (isRtt) nbRtt++;
     if (isConge) nbConge++;
 
@@ -868,6 +870,7 @@ function renderMensuel(jours, sal, moisNom) {
     <div class="mens-total-card"><div class="val" style="color:${totalEcartMin>=0?'var(--green)':'var(--red)'}">${minsToStr2(totalEcartMin)}</div><div class="lbl">Écart / base</div></div>
     ${sal !== 'ANTONIO' ? `<div class="mens-total-card"><div class="val" style="color:var(--blue)">${minsToStr2(totalMajMin)}</div><div class="lbl">Maj. 25%</div></div>` : ''}
     <div class="mens-total-card"><div class="val">${nbConge + nbRtt}</div><div class="lbl">J. Abs/CP/RTT</div></div>
+    ${nbMaladie > 0 ? `<div class="mens-total-card" style="background:var(--red-l);border:1px solid var(--red)"><div class="val" style="color:var(--red)">${nbMaladie}</div><div class="lbl" style="color:var(--red)">🏥 Arrêt Maladie</div></div>` : ''}
   </div>`;
 
   el.innerHTML = html;
